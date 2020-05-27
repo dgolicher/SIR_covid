@@ -1,0 +1,13 @@
+name: SIR_Covid
+title: SIR_Covid
+username:
+account: dgolicher
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2364090
+bundleId: 3195642
+url: https://dgolicher.shinyapps.io/SIR_Covid/
+when: 1590588093.65624
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: df2020-05-25.rda|df2020-05-26.rda|df2020-05-27.rda|Fit_sir.html|Fit_sir.Rmd|workspace.rda
