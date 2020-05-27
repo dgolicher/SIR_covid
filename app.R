@@ -70,8 +70,8 @@ tryObserve <- function(x) {
 
 library(WDI)
 wd <- WDI(country="all", indicator=c( "SP.POP.TOTL", "SP.POP.65UP.TO.ZS"), start=2018, end=2018, extra = TRUE)
-wd<-wd[c(1,4,5)]
-names(wd)[2:3] <-c("pop","p_over_65")
+wd<-wd[c(1,4)]
+names(wd)[2] <-c("pop")
 
 ## A small function to ensure that the data tables have download buttons
 
@@ -107,59 +107,55 @@ jh_data <- function(){
   
   Deaths<-d
   
-  URL <- getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
-  data <- read.csv(text = URL, check.names = F)
-  
-  pivot_longer(data,cols=5:dim(data)[2],names_to = "Date") ->d
-  names(d)<-c("Province","Country","Lat","Long","Date","NCases")
-  
-  d$Date<-as.Date(d$Date,format="%m/%d/%y")
-  Recovered<-d
-  
-  
   Confirmed %>% group_by(Country, Date) %>% summarise(NCases=sum(NCases)) -> confirmed_country
   Deaths %>% group_by(Country, Date) %>% summarise(NDeaths=sum(NCases)) -> deaths_country
-  Recovered %>% group_by(Country, Date) %>% summarise(NRecovered=sum(NCases)) -> recovered_country
+ confirmed_country %>% left_join(deaths_country,by = c("Country", "Date")) -> by_country
   
-  confirmed_country %>% left_join(deaths_country,by = c("Country", "Date")) %>% left_join(recovered_country, by = c("Country", "Date")) -> by_country
-  by_country%>%arrange(Date) %>% mutate(New_cases = NCases - lag(NCases, default = first(NCases)), NActive=NCases-NDeaths-NRecovered) -> by_country
   by_country
 }
 
 
 df<-jh_data()
 
-# Good idea to periodically save the data, ready for the day that JHs site goes down for ever!
+source("states.R")
+df2<-get_states()
 
-#save(df,file=sprintf("df%s.rda",Sys.Date() ))
+df %>%arrange(Date) %>% mutate(New_cases = NCases - lag(NCases, default = first(NCases))) -> df
 df %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(NDeaths) -> df
-
-df %>% group_by(Country) %>% summarise( max=max(NDeaths)) %>% arrange(-max) %>% mutate(Country = factor(Country, Country)) -> tmp
-c_options<-levels(tmp$Country)
-
 df %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(Daily_deaths) -> df
+
+df2 %>%arrange(Date) %>% mutate(New_cases = NCases - lag(NCases, default = first(NCases))) -> df2
+df2 %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(NDeaths) -> df2
+df2 %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(Daily_deaths) -> df2
+
 
 ## The jh_iso file is just a list of countries and their corresonding codes, used for merging
 ## Some still need correction 
-load("jh_iso.rda")
 ## Some corrections of the jh_isos 
-jh_iso$iso2c[jh_iso$Country=="Serbia"] <-"CS"
-jh_iso$iso2c[jh_iso$Country=="Holy See"] <-NA
-jh_iso$iso2c[jh_iso$Country=="France"]<-"FR"
-jh_iso$iso2c[jh_iso$Country=="Canada"]<-"CA"
+# jh_iso$iso2c[jh_iso$Country=="Serbia"] <-"CS"
+# jh_iso$iso2c[jh_iso$Country=="Holy See"] <-NA
+# jh_iso$iso2c[jh_iso$Country=="France"]<-"FR"
+# jh_iso$iso2c[jh_iso$Country=="Canada"]<-"CA"
+# save(jh_iso, file="jh_iso.rda")
+
+load("jh_iso.rda")
+
 df<-merge(df,jh_iso)
 df<-merge(wd,df)
-df$p_over_65<-round(df$p_over_65,1)
+df<-df[,c(3:8,2)]
+df2<- df2[,c(1,2,4,3,6,7,5)]
 
-library(zoo)
-df %>% mutate (pop_over_65 = round(pop*p_over_65/100,1)) %>% mutate(NDeathsp65 = round( NDeaths/(pop_over_65/100000),0)) %>% arrange(Country,Date) %>% mutate(deaths_7day_mean=round(rollapply(Daily_deaths,7,mean,align='right',fill=NA),1)) ->df
+names(df2)[1]<-"Country"
+
+names(df)
+names(df2)
+
+df<-bind_rows(df,df2)
 d<-df
-df2<-df[,c(1,4,5,6,7,9,10,11,12,13, 14)] 
-df2 %>% filter(Date==max(Date)) ->dd
+d$Daily_deaths[d$Daily_deaths < 0]<-NA
 
-
-
-### Test
+df %>% group_by(Country) %>% summarise( max=max(NDeaths)) %>% arrange(-max) %>% mutate(Country = factor(Country, Country)) -> tmp
+c_options<-levels(tmp$Country)
 
 
 
@@ -168,15 +164,15 @@ df2 %>% filter(Date==max(Date)) ->dd
 ui <- fluidPage(
    
    # Application title
-   titlePanel("Investigating matches to the SIR model"),
+   titlePanel("Heuristic matching of the SIR model"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
         tabsetPanel(type = "tabs",
-                    tabPanel("Country choice",
-        h4("Select a country from the list"),
-        h5("If the country does not appear in the drop down menu press backspace and type a few letters to find it."),
+                    tabPanel("Choose data options",
+        h4("Select a country or US State from the list"),
+        h5("If the country or State does not appear in the drop down menu press backspace and type a few letters to find it."),
         h6("The figures show the running average of the reported daily incidence of death with Covid or confirmed new case."),
         selectInput("country", "Country", c_options, selected = 'United Kingdom', multiple = FALSE,
                     selectize = TRUE, width = NULL, size = NULL),
@@ -191,7 +187,10 @@ ui <- fluidPage(
                     max = as.Date("2020-04-01","%Y-%m-%d"),
                     value=as.Date("2020-03-01"),
                     timeFormat="%Y-%m-%d")
-      ),tabPanel("SIR",
+      ),tabPanel("SIR model parameters",
+        h6("The interface allows combinations of SIR model parameters to be quickly evaluated against data."),         
+        h6("There are many differnt combinations of parameters that can produce a close match to the data"),
+        h6("The SIR model assmes panmixia so is likely to be particularly inappropriate for countries such as the US or Brazil: The data set includes US states as entities." ),
                  sliderInput("beta",
                              "Beta",
                              min = 0,
@@ -338,6 +337,8 @@ server <- function(input, output) {
    gdata2<-data.frame(days=1:days, deaths= dd2$NDeaths)
    ## Find the differences (i.e. the daily deaths)
    gdata2 %>% mutate(Daily_deaths = deaths - lag(deaths, default = first(deaths))) %>% arrange(deaths) -> gdata2
+   
+   gdata2$Daily_deaths[gdata2$Daily_deaths<0]<-NA
    
    N<-dd$pop[1]  # Population at risk
    init_deaths<-gdata2$deaths[1] +1 # Seed with one extra death just in case there are some situations where there are no deaths to start
