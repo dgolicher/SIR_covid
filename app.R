@@ -205,17 +205,22 @@ ui <- fluidPage(
                              max = 20,
                              value = 4),
                  sliderInput("ifr",
-                             "Incidence fatality rate",
-                             min = 0.001,
-                             max = 0.01,
-                             value = 0.001,
-                             step=0.001),
+                             "Incidence fatality rate per thousand",
+                             min = 0.1,
+                             max = 10,
+                             value = 1,
+                             step=0.1),
                  sliderInput("immunity",
                              "% of population that are naturally immune:",
                              min = 0,
                              max = 100,
-                             value = 20)
-      
+                             value = 20),
+                 
+                 sliderInput("burn_in",
+                             "Number of days prior to date chosen to start SIR model run:",
+                             min = 7,
+                             max = 30,
+                             value = 15)
                  
                  )) ),
       
@@ -316,8 +321,10 @@ server <- function(input, output) {
      immunity<-input$immunity/100
      beta<-input$beta
      gamma<-1/input$gdays
-     ifr<-input$ifr
-
+     ifr<-input$ifr/1000
+     burn_in <- input$burn_in  ## This is the number of days prior to the observed death number at which to start the run
+     
+    #### For testing code
     # countries <-"US"
     # sdate<-as.Date("2020-03-01")
     # immunity<-0.2
@@ -326,14 +333,17 @@ server <- function(input, output) {
     # ifr<-0.001
      d %>% filter(Country %in% countries) %>% arrange(Date) %>% filter(Date > sdate ) ->dd2
      days<-length(dd2$NDeaths)
+  ### Arrange a data frame for work with just two columns, one being total deaths and the other days,
+     
    gdata2<-data.frame(days=1:days, deaths= dd2$NDeaths)
+   ## Find the differences (i.e. the daily deaths)
    gdata2 %>% mutate(Daily_deaths = deaths - lag(deaths, default = first(deaths))) %>% arrange(deaths) -> gdata2
    
-   N<-dd$pop[1]
+   N<-dd$pop[1]  # Population at risk
+   init_deaths<-gdata2$deaths[1] +1 # Seed with one extra death just in case there are some situations where there are no deaths to start
    
+   init_cases<-init_deaths/ifr ## Dividing by the incidence fatality rate gives the number of cases at the start
    
-   init_deaths<-gdata2$deaths[1] +1 # Seed with one extra detah for situations where there are no cases to start
-   init_cases<-init_deaths/ifr
    
    I <- init_cases/N
    S <- 1-I-immunity
@@ -341,7 +351,7 @@ server <- function(input, output) {
    D <- init_deaths/N
   
    
-   sd<-run_sir(beta=beta, gamma= gamma, S=S, I=I, days=days+15, D=0, R=R, v=ifr)
+   sd<-run_sir(beta=beta, gamma= gamma, S=S, I=I, days=days+burn_in , D=0, R=R, v=ifr)
   
    output$sird <- renderDygraph(dygraph(sd))
    ds<-pivot_longer(sd,cols=2:5)
@@ -352,7 +362,7 @@ server <- function(input, output) {
    output$sirplot<- renderPlot({
      plot_title<-sprintf("R zero approximately %s",round(beta/gamma,2))
      ds %>% filter(name=="D") %>% mutate(Daily_deaths = value - lag(value, default = first(value))) %>% arrange(value) -> ds2
-     ds2 %>% filter(time>15) %>%
+     ds2 %>% filter(time>burn_in) %>%
      ggplot(aes(x=time,y=Daily_deaths)) + 
      geom_line() + geom_line( aes(y=gdata2$Daily_deaths), col="red") + ggtitle(plot_title)
    })
@@ -360,7 +370,7 @@ server <- function(input, output) {
    output$sircumplot<- renderPlot({
      plot_title<-sprintf("R zero approximately %s",round(beta/gamma,2))
      ds %>% filter(name=="D") %>% mutate(Daily_deaths = value - lag(value, default = first(value))) %>% arrange(value) -> ds2
-     ds2 %>% filter(time>15) %>%
+     ds2 %>% filter(time>burn_in) %>%
        ggplot(aes(x=time,y=value)) +
        geom_line() + geom_line( aes(y=gdata2$deaths), col="red") + ggtitle(plot_title)
    })
