@@ -31,16 +31,17 @@ sir <- function(time, state, parameters) {
     dS <- -beta * S * I
     dI <-  beta * S * I - gamma * I
     dR <- gamma * I * (1-v)
-    dD <- gamma * I * v
+    dH <- gamma * I * v
+    dD <- gamma2 * H
     
-    return(list(c(dS, dI, dR,dD)))
+    return(list(c(dS, dI, dR,dH,dD)))
   })
 }
 
-run_sir<-function(beta=0.5, gamma= 0.1, days=100, S=0.9,I=0.1, v=0.1, R=0, D=0)
+run_sir<-function(beta=0.5, gamma= 0.1, days=100, S=0.9,I=0.1, v=0.1, R=0, D=0, H=0, gamma2=1/15)
 {
-  parameters <- c(beta = beta,gamma=gamma, v=v)
-  init<- c(S = S, I = I,R = R, D=D)
+  parameters <- c(beta = beta,gamma=gamma, v=v, gamma2=gamma2)
+  init<- c(S = S, I = I,R = R, D=D, H=H)
   times<- seq(0, days, by = 1)
   out <- ode(y = init, times = times, func = sir, parms = parameters)
   d <- as.data.frame(out)        
@@ -157,7 +158,8 @@ d$Daily_deaths[d$Daily_deaths < 0]<-NA
 df %>% group_by(Country) %>% summarise( max=max(NDeaths)) %>% arrange(-max) %>% mutate(Country = factor(Country, Country)) -> tmp
 c_options<-levels(tmp$Country)
 
-
+# nm<- sprintf("workspace%s.rda", Sys.Date())
+# save(list=ls(),file=nm)
 
 
 # Define UI for application that draws a histogram
@@ -236,15 +238,15 @@ ui <- fluidPage(
                              verbatimTextOutput  ("results")),
                     
                     tabPanel("SIR fit to cumulative deaths", 
-                             
                              plotOutput("sircumplot") ),
+                    
                     tabPanel("SIR fit to daily deaths", 
-                             
-                             plotOutput("sirplot") ),
+                            plotOutput("sirplot") ),
+                    
                     tabPanel("SIR output", 
-                             
-                          
-                             dygraphOutput("sird") )
+                       dygraphOutput("sird") )
+                    
+                
                     
         )
         
@@ -322,6 +324,7 @@ server <- function(input, output) {
      gamma<-1/input$gdays
      ifr<-input$ifr/1000
      burn_in <- input$burn_in  ## This is the number of days prior to the observed death number at which to start the run
+     gamma2<-  1/burn_in
      
     #### For testing code
     # countries <-"US"
@@ -350,9 +353,10 @@ server <- function(input, output) {
    S <- 1-I-immunity
    R <- immunity
    D <- init_deaths/N
+   H <- D/gamma2
   
    
-   sd<-run_sir(beta=beta, gamma= gamma, S=S, I=I, days=days+burn_in , D=0, R=R, v=ifr)
+   sd<-run_sir(beta=beta, gamma= gamma, S=S, I=I,D=D,H=H, days=days+burn_in , R=R, v=ifr, gamma2=gamma2)
   
    output$sird <- renderDygraph(dygraph(sd))
    ds<-pivot_longer(sd,cols=2:5)
