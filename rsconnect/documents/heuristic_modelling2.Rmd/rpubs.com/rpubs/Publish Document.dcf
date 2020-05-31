@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/622066/f45220da5f9b4196b19f7fbd1c429930
+bundleId: https://api.rpubs.com/api/v1/document/622066/f45220da5f9b4196b19f7fbd1c429930
+url: http://rpubs.com/dgolicher/622066
+when: 1590954501.92999
