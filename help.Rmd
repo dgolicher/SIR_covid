@@ -2,6 +2,8 @@
 title: "A heuristic SIR model of Covid-19"
 author: "Duncan Golicher"
 date: "28/05/2020"
+bibliography: epidemics.bib
+
 output:
   html_document:
     toc: true
@@ -29,16 +31,16 @@ library(deSolve)
 
 ## What is heuristic modelling?
 
-The term heuristic has changed in meaning in recent years as a result of its use in modern decision theory. Wikipedia defines the word heuristic as appplying to "any approach to problem solving or self-discovery that employs a practical method that is not guaranteed to be optimal, perfect or rational, but which is nevertheless sufficient for reaching an immediate, short-term goal." 
-An older, and simpler, defintion is that applying a heuristic is "a means of enabling a person to discover or learn something for themselves". Under this definition the application of a heuristic model should be **rational**, although it may be neither optimal nor perfect.
+The term heuristic has changed in meaning in recent years as a result of its use in modern decision theory. Wikipedia defines the word heuristic as applying to "any approach to problem solving or self-discovery that employs a practical method that is not guaranteed to be optimal, perfect or rational, but which is nevertheless sufficient for reaching an immediate, short-term goal." 
+An older, and simpler, definition is that applying a heuristic is "a means of enabling a person to discover or learn something for themselves". Under this definition the application of a heuristic model should be **rational**, although it may be neither optimal nor perfect.
 
-Heuristic models have a long tradition of use for didactic purposes. When teaching epidemiological modelling individual based "zombie" models are often used. Computeter generated zombies moving and infecting a population in an artifical world provides insights into the fundamental principles underlying the spread and the persistance of an epidemic. Heuristic models are simplified depictions of reality that help us to think clearly. Individual based models such as the zombie world,  with its stochastic dynamics and artficially simplified behaviour are not suitable for making quantitative predictions about the real world. It is quite clear that the real world is not really like the model world.  However the model world does include enough features of the real world to allow us to discover something about it for ourselves.
+Heuristic models have a long tradition of use for didactic purposes. When teaching epidemiological modelling individual based "zombie" models are often used. Computer generated zombies moving and infecting a population in an artificial world provides insights into the fundamental principles underlying the spread and the persistence of an epidemic. Heuristic models are simplified depictions of reality that help us to think clearly. Individual based models such as the zombie world,  with its stochastic dynamics and artificially simplified behaviour are not suitable for making quantitative predictions about the real world. It is quite clear that the real world is not really like the model world.  However the model world does include enough features of the real world to allow us to discover something about it for ourselves.
 
-The classic SIR model of Kermack and McKendrick is also an extremely simple model. The SIR differes from the real world in many respects. It is another heuristic model that answers a question  of the type "what would happen if the world were to be like this?" However the SIR model consists of equations with deterministic mathematical solutions. As the equations can be solved precisely it can be quite tempting to use the model to make precise quantitative predictions. If quantities derived from the SIR such as time varying rates of tranmsision and $R_0$ values are being used for heuristic purposes then they are best used in conjunction with the SIR model itself. The world is never really as simple as the world implied by the SIR. All models are wrong, but some are useful The SIR is a useful model, but only if all the assumptions used are clearly stated.
+The classic SIR model of Kermack and McKendrick is also an extremely simple model. The SIR differs from the real world in many respects. It is another heuristic model that answers a question  of the type "what would happen if the world were to be like this?" However the SIR model consists of equations with deterministic mathematical solutions. As the equations can be solved precisely it can be quite tempting to use the model to make precise quantitative predictions. If quantities derived from the SIR such as time varying rates of transmission and $R_0$ values are being used for heuristic purposes then they are best used in conjunction with the SIR model itself. The world is never really as simple as the world implied by the SIR. All models are wrong, but some are useful The SIR is a useful model, but only if all the assumptions used are clearly stated.
 
 ## The SIR model
 
-There is a case to be made for considering the SIR model to have been the most successful deterministic differential equation based model of all time with regard to curve fitting. Almost all epidemic outbreaks follow the general pattern of an SIR curve, or its many variants. So the historical evidence in support of the SIR as a tool for estimation is strong. The SIR model provides an underlying framework and vocabulary for epidemiologal modelling. 
+There is a case to be made for considering the SIR model to have been the most successful deterministic differential equation based model of all time with regard to curve fitting. Almost all epidemic outbreaks follow the general pattern of an SIR curve, or its many variants. So the historical evidence in support of the SIR as a tool for estimation is strong. The SIR model provides an underlying framework and vocabulary for epidemiologal modelling and variants of the SIR are widely used when considering zzonotic disease. [@Dorjee2013]. 
 
 The classic SIR model uses three compartments.
 
@@ -57,7 +59,7 @@ $I = 1$
 
 If the model were expressed as proportions of the population then $I = \frac{I}{N}$ 
 
-Let's introduce a parameter for the model to control the rate of transmission between infected individuals and susceptible individuals. We call this $\beta$ (beta). In a model scaled to the population $\beta$ represents the number of new individuals that are infected each time step (usually a day) by an initially infected individual when the rest of the population is completely susceptible.  So, if $\beta = 0.5$ this implies that half a person becomes infected each day. This cannot actually happen. We can hwoever see that this means that there will be initially one new infection every two days, on average. Although it can be convenient mentally to think of beta, gamma and the derived $R_0$ in terms of what happens to individuals, in the model they are in fact population level parameters which represent an "average" result. 
+Let's introduce a parameter for the model to control the rate of transmission between infected individuals and susceptible individuals. We call this $\beta$ (beta). In a model scaled to the population $\beta$ represents the number of new individuals that are infected each time step (usually a day) by an initially infected individual when the rest of the population is completely susceptible.  So, if $\beta = 0.5$ this implies that there will be initially one new infection every two days, on average. Although it can be convenient mentally to think of beta, gamma and the derived $R_0$ in terms of what happens to individuals, in the model they are in fact population level parameters which represent a smoothed "average" result. 
 
 We can write an equation  for transmission like this ..
 
@@ -78,53 +80,37 @@ If $\gamma$ = 0.1 then the illness lasts 10 days, on average.
 
 ### The basic reproduction number $R_0$
 
-The basic reproduction number, written as $R_0$, represents the number of new cases that an initial case generates, on average over the course of its own infectious period, assuming all the rest of the population is uninfected. 
+The basic reproduction number, written as $R_0$, can be thought of as representing the number of new cases that an initial case generates, on average over the course of its own infectious period, assuming all the rest of the population is uninfected. 
 
-You can estimate $R_0$ in a simple SIR model by thinking about the meaning of the parameters $\beta$ and $\gamma$. Each day the first infected individual will produce $\beta$  new cases. An individual remains infectious for $\frac{1}\gamma$ days. So 
+An estimate of $R_0$ in a simple SIR model can be made through the $\beta$ and $\gamma$ parameters. Each day the first infected individual will produce $\beta$  new cases. An individual remains infectious for $\frac{1}\gamma$ days. So 
 
 $R_0 \approx \frac{\beta}\gamma$
 
 If $R_0 < 1$ the epidemic clearly will not spread, as fewer than one new case arises as a result of the initial infection. 
 
-As $R_0$ depends on both beta and gamma there is no $R_0$ for adisease as such. The $R_0$ depends on the properties and behaviour of the population. If the individuals mix freely and frequently in envirnments in which transmission is likely then $R_0$ will be high. If measures are taken to reduce contact then $R_0$ falls. It is important to be aware of the difference between $R_0$ and time variant rate of transmission that some commentators on Covid have begun referring to as R. The actual rate of transmission $\frac {dI}{dt}$ changes as the epidemic progresses and is a function of the fraction susceptible and infected. 
+As $R_0$ depends on both beta and gamma there is no $R_0$ for a disease as such. The $R_0$ depends on the properties and behaviour of the population. If the individuals mix freely and frequently in environments in which transmission is likely then $R_0$ will be high. If measures are taken to reduce contact then $R_0$ falls. It is important to be aware of the difference between $R_0$ and time variant rate of transmission that some commentators on Covid have begun referring to as R. The actual rate of transmission $\frac {dI}{dt}$ changes as the epidemic progresses and is a function of the fraction susceptible and infected. It is also important to remember that $R_0$ is an average over the population. If one super spreader results in 200 infections this does not imply an $R_0$ of 200, unless each of the subsequent infected people continue to spread the disease in the same way. 
 
 
 ## The panmixia assumption
 
-The panmixia assumption is a central element of the SIRS. More sophisticated models, such as the computer simulation developed by Neil Ferguson, disaggregate populations into different compartments, each one with its own "jumble of parameters" to depict contagion. Spatial structure is also modelled. Although these more complex models would appear to be able to make more reliable predictions than the SIR through being much more realistic, they can suffer from the "42" issue well known to those familiar with the wrok of Douglas Adams. 
-It also becomes increasingly difficult to find values for the jumbles of parameters. So work to address one potentially unjustifiable assumption leads to having to make many more.
+The panmixia assumption is a central element of the SIRS. More sophisticated models, such as the computer simulation developed by Neil Ferguson, disaggregate populations into different compartments, each one with its own "jumble of parameters" to depict contagion [@Ferguson2020] 
+[@Ferguson2006]. Spatial structure is also modelled. Although these more complex models would appear to be able to make more reliable predictions than the SIR through being much more realistic, they can suffer from the "42" issue well known to those familiar with the work of Douglas Adams. It also becomes increasingly difficult to find values for the all the multiple parameters. So work to address one potentially unjustifiable assumption leads to having to make many more assumptions.
 
-Panmixia is often misunderstood as implying that every member of a population has an equal chance of an actual encounter with any other. In fact all that is needed to fulfill the panmixia assumption is for the network of contacts to form a "small world" in which there are pathways between all elements with no more than 5 (or so) links. A small number of long distance linkages are sufficient to 
-
-### Simulating networks {.tabset }
-
-#### Long distance transmission routes
-
-![](long_distance.gif)
-
-#### Only local transmission routes
-
-![](local.gif)
-
-
-#### Change from global to local (lockdown)
-
-![](social_distancing_early.gif)
+Panmixia is often misunderstood as implying that every member of a population has an equal chance of an actual encounter with any other. In fact all that is needed to fulfil the panmixia assumption is for the network of contacts to form a "small world" in which there are pathways between all elements with no more than 5 (or so) links. A small number of long distance linkages are sufficient to [fulfill the small world criteria. See section on network models](#networks)
 
 
 ## Modelling Covid-18 using the SIR
 
-A very clear explantation of the way the SIR model can be used as a heuristic tool for exploring competing hypotheses regarding the trajectory of the Covid-19 epidemic is provided by Sunetra Gupta
+A very clear explanation of the way the SIR model can be used as a heuristic tool for exploring competing hypotheses regarding the trajectory of the Covid-19 epidemic is provided by Sunetra Gupta
 
 https://www.youtube.com/watch?v=huizqoEfvpw
 
-Gupta refers to beta as a "jumble of parameters". This is a good way of looking at the model, as transmssion is actually dependent on a complex process of involving the number of contacts between individuals and the consequence of contact. 
+Gupta refers to beta as a "jumble of parameters". This is a good way of looking at the model, as transmission is actually dependent on a complex process of involving the number of contacts between individuals and the consequence of contact. 
+Just prior to the declaration of lock down in the UK the group of researchers at Oxford led by Sunetra Gupta published a paper which included a section on fitting a simple SIR model to the data available at the time [@Lourenco2020]. The  model was essentially an interesting piece of heuristic modelling that concluded that many possible models could all "fit" the data available at the time and that serological studies were needed to mediate between alternative models.
 
-Just prior to the declaration of lockdown in the UK the group of researchers at Oxford led by Sunetra Gupta published a paper based on fitting a simple SIR model to the data available at the time. The model was essentially an interesting piece of heuristic modelling that concluded that many possible models could all "fit" the data available at the time.
+@Lourenco2020 was transparent in its assumptions and clarified what was known  to be known, or could at least be estimated, with regard to the disease and what was known to be unknown. Gupta assumed that the actual number of people infected was a "known unknown". There was no point it using numbers derived from testing as the number of tests being conducted was too small and the sample selected for testing was completely unrepresentative. If the number of people with the disease is not known then the severity of the disease and its contagious potential are also unknown.
 
-Gupta's paper was transparen in its assumptions and clarified what was known  to be known, or could at least be estimated, with regard to the disease and what was known to be unknown. Gupta assumed that the actual number of people infected was a "known unknown". There was no point it using numbers derived from testing as the number of tests being conducted was too small and the sample selected for testing was completely unrepresentative. If the number of people with the disease is not known then the severity of the disease and its contagious potential are also unknown.
-
-1. The number of people known to have died of Covid at any point in time is the only reliable indication of the true progress of the disease. This assumption may be questionable if people are dying without being tested, or people are dying of co morbitiies with covid but not of covid.  
+1. The number of people known to have died of Covid at any point in time is the only reliable indication of the true progress of the disease. This assumption may be questionable if people are dying without being tested, or people are dying of co morbidities with covid but not of covid.  
 2. None of the parameters of the SIR are known.
 3. The "case fatality ratio" ($CFR = \frac{NumberDeaths}{NumbCases}$) is likely to be much lower than the incidence fatality ratio ($IFR =\frac{NumberInfected}{NumbCases}$) due to low rates of diagnosis.
 4. Some ballpark estimates for the IFR can be made with extremely broad ranges based on data from the initial outbreak in China and other emerging sources at the time.
@@ -135,9 +121,9 @@ If we know how many people have died of covid at any one point in the epidemic's
 
 ### Multiple competing hypotheses 
 
-One interesting element of the paper was the way that it revealed an intrinsic difficulty in evaluating the fit of all moderately complex models. Gupta's group used the Bayesian technique of Monte Carlo Markov Chain (MCMC) to find credible intervals for key parameters. This is a really good way of formally measuring model uncertainty. However difficulties still arise if multiple local maxima occur in the likelihood function. If very different sets of parameter values produce similar matches to the available data. In this case the model becomes extremely sensitive to all prior assumptions regarding parameter values. To put it another way. If you hold all other parameters constant apart from (say) the incident fatality ratio then you may be able to estimate a ballpark value for the IFR with a formal measure of ucertainty. However, what happens if the region where the optimum falls jumps into a totally different ballpark when you change your assumptions for other parameter such as beta?  You find that different models provide just as good a fit to the data, even though each model represents a completely different hypothesis regarding how the epidemic behaves. 
+One interesting element of the paper was the way that it revealed an intrinsic difficulty in evaluating the fit of all moderately complex models. Gupta's group used the Bayesian technique of Monte Carlo Markov Chain (MCMC) to find credible intervals for key parameters. This is a really good way of formally measuring model uncertainty. However difficulties still arise if multiple local maxima occur in the likelihood function. If very different sets of parameter values produce similar matches to the available data. In this case the model becomes extremely sensitive to all prior assumptions regarding parameter values. To put it another way. If you hold all other parameters constant apart from (say) the incident fatality ratio then you may be able to estimate a ballpark value for the IFR with a formal measure of uncertainty. However, what happens if the region where the optimum falls jumps into a totally different ballpark when you change your assumptions for other parameter such as beta?  You find that different models provide just as good a fit to the data, even though each model represents a completely different hypothesis regarding how the epidemic behaves. 
 
-There is no statistical solution to the problem. The only way to address it is to accept the model as being a heuristic tool. The SIR becomes a classic "what if the world were like this" model. Advising on the right course of action to combat the epidemic is clearly impossible. However as new data comes in some combinations of parameters and assumptions can be ruled out. If the SIR does not fit the data then the assumptions underlying the SIR must be wrong in some respect. The further the predictions lie from the actual data the more the assumptions have been violated. So while it is impossinle to find the "right" model, it is easy to rule out models that are very clearly wrong.
+There is no statistical solution to the problem. The only way to address it is to accept the model as being a heuristic tool. The SIR becomes a classic "what if the world were like this" model. Advising on the right course of action to combat the epidemic is clearly impossible. However as new data comes in some combinations of parameters and assumptions can be ruled out. If the SIR does not fit the data then the assumptions underlying the SIR must be wrong in some respect. The further the predictions lie from the actual data the more the assumptions have been violated. So while it is impossible to find the "right" model, it is easy to rule out models that are very clearly wrong.
 
 
 ```{r}
@@ -266,6 +252,24 @@ g1
 
 
 
+## Alternative assumptions
+
+<a name="networks"></a>
+
+### Simulating networks {.tabset } 
+
+#### Long distance transmission routes
+
+![](long_distance.gif)
+
+#### Only local transmission routes
+
+![](local.gif)
+
+
+#### Change from global to local (lockdown)
+
+![](social_distancing_early.gif)
 
 
 
@@ -276,4 +280,4 @@ The process becomes even more difficult to pin down when the population is disag
 
 
 
-
+## References
