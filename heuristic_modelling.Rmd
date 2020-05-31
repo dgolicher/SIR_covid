@@ -8,6 +8,7 @@ output:
   html_document:
     code_folding: hide
     toc: true
+    toc_float: true
     toc_depth: 3
 ---
 
@@ -29,12 +30,16 @@ library(easynls)
 library(deSolve)
 ```
 
-## Model link
+## Introduction 
 
-This page is very much still under construction. It aims to explain some elements of the model available from the link below, which is also under construction.
-https://dgolicher.shinyapps.io/SIR_Covid/
-Code from 
-https://github.com/dgolicher/SIR_covid
+This page is very much still under construction. It aims to explain some elements of the model available from the link below, which is also under construction.  
+
+https://dgolicher.shinyapps.io/SIR_Covid/ 
+
+All code included on github 
+
+https://github.com/dgolicher/SIR_covid 
+
 
 ## What is heuristic modelling?
 
@@ -49,6 +54,8 @@ The classic SIR model of Kermack and McKendrick is another extremely simple mode
 
 There is a case to be made for considering the SIR model to have been the most successful deterministic differential equation based model of all time with regard to curve fitting. Almost all epidemic outbreaks do tend to follow the general pattern of an SIR curve, or its many variants. So the historical evidence in support of the SIR as a tool for estimation is strong. The SIR model provides an underlying framework and vocabulary for epidemiologal modelling. Variants of the SIR are widely used when considering zoonotic diseases such as covid-19. [@Dorjee2013]. 
 
+### Compartments
+
 The classic SIR model uses three compartments.
 
 S = Susceptible fraction at risk  
@@ -61,11 +68,15 @@ N = The total population size
 
 Assume one person starts an epidemic by becoming infected. If the model is being scaled to the population at risk then $I = \frac{1}{N}$ 
 
+### Beta (transmission)
+
 Let's introduce a parameter for the model to control the rate of transmission between infected individuals and susceptible individuals. We call this $\beta$ (beta). In a model which is scaled to the population size $\beta$ represents the number of new individuals that are infected each time step (usually a day) by an initially infected individual when the rest of the population is completely susceptible.  So, if $\beta = 0.5$ this implies that there will be initially one new infection every two days, on average. Although it can be convenient mentally to think of beta, gamma and the derived $R_0$ in terms of what happens to individuals, in the model they are in fact population level parameters which represent a smoothed "average" result. Beta is also extremely hard to measure or pin down directly. There are many factors that influence contagion. Transmission events are extremely heterogeneous in both space and time. 
 
 We can write an equation  for transmission like this ..
 
 $\frac {dS}{dt} = - \beta \frac{SI}{N}$
+
+### Gamma (removal)
 
 In order to progress with the model we now need to introduce a second parameter, which is typically known as $\gamma$ (gamma). Gamma represents the proportion of the infected population removed (die or become immune) in any one time step. 
 The model now becomes.
@@ -75,6 +86,7 @@ $\frac {dS}{dt} = - \beta \frac{SI}{N}$
 $\frac {dI}{dt} =  \beta \frac{SI}{N}- \gamma \frac{I}{N}$
 
 $\frac {dR}{dt} =  \gamma \frac{I}{N}$
+
 
 
 Because gamma is the proportion of people recovering, or dying, from the illness each time step then 
@@ -94,13 +106,13 @@ If $R_0 < 1$ the epidemic clearly will not spread, as fewer than one new case ar
 As $R_0$ depends on both beta and gamma there is no $R_0$ for a disease as such. The $R_0$ depends on the properties and behaviour of the population. If the individuals mix freely and frequently in environments in which transmission is likely then $R_0$ will be high. If measures are taken to reduce contact then $R_0$ falls. It is important to be aware of the difference between $R_0$ and time variant rate of transmission that some commentators on Covid have begun referring to as R. The actual rate of transmission $\frac {dI}{dt}$ changes as the epidemic progresses and is a function of the fraction susceptible and infected. It is also important to remember that $R_0$ is an average over the population. If one super spreader results in 200 infections this does not automatically imply an $R_0$ of 200, unless each of the subsequent infected people also continue to spread the disease in the same way. If we start with a large number of infected individuals  (N) and implement contact tracking and tracing then $R_0$ would be (approximately) the sum of all the secondary cases divided by N. 
 
 
-## The panmixia assumption
+### The panmixia assumption
 
 The *panmixia* assumption is a key central element of the SIRS. More sophisticated models, such as the computer simulation developed by Neil Ferguson, disaggregate populations into different compartments, each one with its own sets of interlinked parameters  [@Ferguson2020] 
-[@Ferguson2006]. Spatial structure is also modelled explicitly. These complex models aim to make more reliable predictions than the SIR through being much more realistic. However they can suffer from the "42" problem. The number 42 is well known to those familiar with the work of Douglas Adams. It is the ultimate resolution of a computer model aimed at resolving all doubts regarding life the universe and everything. However as deep thought ran undocumented code and did not keep track of its working it was unable to reveal why 42 was the answer. 
+[@Ferguson2006]. Spatial structure is also modelled explicitly. These complex models aim to make more reliable predictions than the SIR through being much more realistic. However they can suffer from the "42" issue The number 42 is well known to those familiar with the work of Douglas Adams. It is the ultimate resolution of a computer model aimed at resolving all doubts regarding life the universe and everything. However as the supercomputer named Deep Thought ran through all its many lines of undocumented code it did not keep track of its workings. When it was asked which question was answered by the number 42 it was unable to answer. Models that answer a question with the number 42 are the exact opposite of heuristic models.
 As models become more complex it becomes increasingly difficult to find values for the all the multiple parameters. So work aimed at addressing one potentially unjustifiable assumption leads to having to make many more potentially unjustified assumptions assumptions.  Ironically, the output from even highly complex simulations often appears almost identical in shape and general form to results from the SIR. So the principle of parsimony would encourage the use of the SIR unless some very specific addition to it needs to be tested.
 
-The panmixia assumption of the SIR is often seen as highly problematic. It does break down. However Panmixia is often misunderstood as implying that every member of a population has an equal chance of an actual encounter with any other. In fact all that is needed to fulfil the panmixia assumption is for the network of contacts to form a "small world" in which there are pathways between all elements with no more than 5 (or so) links. A small number of long distance linkages are sufficient to fulfil the small world criteria. [See  this ection on network models](#networks)
+The panmixia assumption of the SIR is often seen as highly problematic. It does break down. However Panmixia is often misunderstood as implying that every member of a population has an equal chance of an actual encounter with any other. In fact all that is needed to fulfil the panmixia assumption is for the network of contacts to form a "small world" in which there are pathways between all elements with no more than 5 (or so) links. A small number of long distance linkages are sufficient to fulfil the small world criteria. The final part fo this document illustrates some concepts using a netlogo model.
 
 
 ## Modelling Covid-19 using the SIR
@@ -109,7 +121,7 @@ A very clear explanation of the way the SIR model can be used as a heuristic too
 
 https://www.youtube.com/watch?v=huizqoEfvpw
 
-Gupta refers to beta as a "jumble of parameters". This is a very good way of looking at the model. Transmission is actually dependent on a complex process of involving the number of [contacts between individuals and the consequence of contact](#networks) . 
+Gupta refers to beta as a "jumble of parameters". This is a very good way of looking at the model. Transmission is actually dependent on a complex process of involving the number of contacts between individuals and the consequence of contact. See section on networks.
 
 Prior to the declaration of the lock down in the UK the group of researchers at Oxford led by Gupta published a non peer reviewed paper which included a section on fitting a simple SIR model to the data available at the time [@Lourenco2020]. The  model was essentially an interesting piece of heuristic modelling that concluded that many possible models could all "fit" the data available at the time and that serological studies were urgently needed to mediate between alternative models.
 
@@ -120,7 +132,7 @@ There was no point in using numbers derived from testing as a measure of infecti
 There were however some points of reference that might be used to get some sort of handle on the epidemic.
 
 1. The number of people known to have died of Covid at any point in time is the only reliable indication of the true progress of the disease. This assumption may be questionable if people are dying without being tested, or people are dying of co morbidities with covid but not of covid.  
-2. None of the parameters of the SIR are known with certainty. Infectiousness appears to last around 3 to 7 days. The disease had spread very rapidly around the world suggesting  $R_0 > 2, \beta > 0.3 $
+2. None of the parameters of the SIR are known with certainty. Infectiousness appears to last around 3 to 7 days. The disease had spread very rapidly around the world suggesting  $R_0 > 2, \beta > 0.3$
 3. The "case fatality ratio" ($CFR = \frac{NumberDeaths}{NumberCases}$) is likely to be much lower than the incidence fatality ratio ($IFR =\frac{NumberInfected}{NumberCases}$) due to low rates of diagnosis.
 4. Some ballpark estimates for the IFR can be made with extremely broad ranges based on data from the initial outbreak in China and other emerging sources at the time.
 
@@ -136,7 +148,9 @@ There is no purely statistical solution to this sort of problem. The only way to
 
 However the approach can be useful. The papers by @Lourenco2020 and  @Ferguson2020 were both written prior to the start of the lockdown. As new data has come in it is now possible to reuse the @Lourenco2020 type model in conjunction with new data. This may help to rule out some combinations of parameters and assumptions can be ruled out. If the SIR does not match the data at all then some of the assumptions underlying the model must be wrong. This could imply either that the SIR framework itself is inadequate, that the parametrisation is wrong or both are wrong. The further the predictions lie from the actual data the more the assumptions have been violated. So while it is impossible to find the "right" model, it is now not quite as hard to rule out models that are very clearly wrong.
 
-## Implementing the SIR in R with Johns Hopkins data as input and reference
+## Implementing the SIR in R 
+
+### Using Johns Hopkins data as input
 
 On the date of writing (`r Sys.Date()`) the Johns Hopkins github repository provides real time data on Covid-19 monitoring for 232 countries and 52 states in the USA. The epidemic curve has now peaked in at least half the countries and states. This provides data that can be used to test the match between the pattern of mortality predicted by various different parametrisations of the SIR and the actual epidemic trajectory.
 
@@ -166,21 +180,20 @@ The interface also allows the user to select a value for the fraction of the pop
 There are two ways to evaluate the match of the model to the data. The main panel of the interface plots model output over daily deaths and the cumulative total of deaths.
 It is tempting to use the word **fitting** to describe this process. However that would be wrong. Model fitting involves using formal statistical criteria (e.g. maximising the likelihood) to evaluate the closeness of output and data. Model matching uses the observer's own heuristics to match the output in order to test hypotheses. A poorly "fitting"" model can have more heuristic value than a model that "fits" the data very well. In fact, models that provide good matches to the data can be more misleading if they provide a good fit for all the wrong reasons. 
 
-#### Model code
+### Model code
 
-Code for the shiny app is available here. 
+All the code for the shiny app is available here. 
 
 https://github.com/dgolicher/SIR_covid
 
-This is a work in progress. Much of the code concerns downloading the Johns Hopkins data and visualising. The core of the model is a set of differential equations representing a slightly modified SIR which takes into account delayed mortality of hospitalised patients after the initial population level infected period. The flows within the model are conceptually related to the schematic diagram presented by Gupta
+This is a work in progress. Much of the code concerns downloading the Johns Hopkins data and visualising. The core of the model is a set of differential equations representing a slightly modified SIR which takes into account delayed mortality of hospitalised patients after the initial population level infected period. The flows within the model are conceptually related to the schematic diagram presented by Gupta.
+
 
 ![](figs/fig1.png)
 
 In the model as implemented here all infected individuals would first be placed in the infected compartment and then sorted into those who become severely ill and eventually die and those who return to the community with immunity.
 
-The equations is solved for the initial starting conditions and parameters chosen by the user.
-
-
+The equations are solved for the initial starting conditions and parameters chosen by the user. Clicking on the code tab to the right in this document will show the equations as written for use by the desolve library in R.
 
 ```{r, eval=FALSE,echo=TRUE}
 
@@ -270,15 +283,14 @@ days<-length(dd2$NDeaths)
 
 ## Examples of model runs
 
-When using the model it is important to interpret all output in terms of **heuristic vale**. The model must not be used for quantitative **prediction**.  The output represents one single iteration of the adapted SIR model. A model designed for predictive purposes which formally combined uncertainty regarding initial parameter values would be run many thousands of times in order to produce credible intervals for quantities of interest. However as interactions between parameters result in many different local maxima in a likelihood profile models with diffuse priors would not converge. So a prior hypothesis would be required to fit the model. The purposes of the heuristic tool is to assist in the formulation of hypotheses, not to predict. 
+When using the model it is important to interpret all output in terms of **heuristic value**. The model must not be used for quantitative **prediction**.  The output represents one single iteration of the adapted SIR model. A model designed for predictive purposes which formally combined uncertainty regarding initial parameter values would be run many thousands of times in order to produce credible intervals for quantities of interest. However as interactions between parameters result in many different local maxima in a likelihood profile models with diffuse priors would not converge. So a prior hypothesis would be required to fit the model. The purposes of the heuristic tool is to assist in the formulation of hypotheses, not to predict. 
 
 ### United Kingdom {.tabset }
 
 Flick between the tabs to see alternative realisations and outcomes.
 
 #### Low IFR - Gupta type model {.tabset }
-
-Parameter values. 
+Parameter values.   
 
 1. Start date = 2020-03-01  
 2. Immunity=0.2  
@@ -286,7 +298,6 @@ Parameter values.
 4. Gamma=0.25 
 5. IFR=0.001 
 6. Average time to death = 24 days
-
 
 ```{r}
 plot_sir(countries ="United Kingdom",sdate=as.Date("2020-03-01"),immunity=0.2 ,beta=0.5, gamma=0.25, ifr=0.001, burn_in=20)
@@ -312,20 +323,19 @@ g1
 ##### Comments
 
 
-This model provides a very convincing fit to the current data. The match between the number of daily deaths and the SIR predicted curve is good, although the model predicts a faster drop off in mortality than observed. This is sadly to be expected, as many people infected with Covid die many weeks or months after initial infection. The SIR curve does predict that most of the population will have been infected.This seems to contradict the seroprevalence studies currently emerging. However a very similar model curve can be obtained by increasing the proportion with immunity (or resistance) to the disease at the outset. This is consistent with other published work with which Gupta has been associated [@Thompson2019]
+This model provides a very convincing fit to the current data. The match between the number of daily deaths and the SIR predicted curve is good, although the model predicts a faster drop off in mortality than observed. This is sadly to be expected, as many people infected with Covid die many weeks or months after initial infection. The SIR curve does predict that most of the population will have been infected.This seems to contradict the seroprevalence studies currently emerging. However a very similar model curve can be obtained by increasing the proportion with immunity (or resistance) to the disease at the outset. This is consistent with other published work with which Gupta has been associated [@Thompson2019]. However see the section on heuristic network modelling for an alternative explanation for the match.
+
 
 #### High IFR - Ferguson type model {.tabset }
+Parameter values.   
 
-Parameter values. 
-
-1. Start date = 2020-03-01  
-2. Immunity=0.2  
-3. Beta=0.5  
+1. Start date = 2020-03-01    
+2. Immunity=0.2    
+3. Beta=0.5   
 4. Gamma=0.25 
-5. IFR=0.01 
-6. Average time to death = 24 days
-
-
+5. IFR=0.01  
+6. Average time to death = 24 days  
+  
 ```{r}
 plot_sir(countries ="United Kingdom",sdate=as.Date("2020-03-01"),immunity=0 ,beta=0.5, gamma=0.25, ifr=0.01, burn_in=20)
 
@@ -357,17 +367,15 @@ The model does not provides any sort of fit to the current data. The match betwe
 ### New York {.tabset }
 
 #### IFR three times higher than London {.tabset }
+Parameter values.    
 
-Parameter values. 
-
-1. Start date = 2020-03-01  
-2. Immunity=0.2  
-3. Beta=0.47  
-4. Gamma=0.2 
-5. IFR=0.003 
-6. Average time to death = 21 days
-
-
+1. Start date = 2020-03-01    
+2. Immunity=0.2    
+3. Beta=0.47    
+4. Gamma=0.2   
+5. IFR=0.003   
+6. Average time to death = 21 days   
+ 
 ```{r}
 plot_sir(countries ="New York",sdate=as.Date("2020-03-01"),immunity=0.2 ,beta=0.47, gamma=0.2, ifr=0.0028, burn_in=16)
 
@@ -392,21 +400,18 @@ g1
 ##### Comments
 
 
-The model does not provides any sort of fit to the current data. The match between the number of daily deaths and the SIR predicted curve is very poor, The SIR curve does predict that most of the population will have been infected. The number of cumulative deaths reaches the 0.5 million mark predicted by 
-[@Ferguson2020] 
+The model provides a reasonable match to the actual death data. The iFR (and case fatality ratio) was indeed at least three times higher in New York than in Lonodon. New York would apriori be expected to be the city most at risk of an epidemic due to high population density and high levels of social contact (subway etc). However the demographic profile does not differ greatly to London. 
 
 
 #### No lockdown scenario. Increase beta to 0.8 {.tabset }
-
-Parameter values. 
-
-1. Start date = 2020-03-01  
-2. Immunity=0.2  
-3. Beta=0.8  
-4. Gamma=0.2 
-5. IFR=0.003 
-6. Average time to death = 21 days
-
+Parameter values.   
+ 
+1. Start date = 2020-03-01   
+2. Immunity=0.2    
+3. Beta=0.8    
+4. Gamma=0.2   
+5. IFR=0.003   
+6. Average time to death = 21 days  
 
 ```{r}
 plot_sir(countries ="New York",sdate=as.Date("2020-03-01"),immunity=0.2 ,beta=0.8, gamma=0.2, ifr=0.0028, burn_in=16)
@@ -430,12 +435,13 @@ g1
 ```
 
 
+##### Comments
 
+As the IFR was meningfully higher in New York if the epidemic had spread at a faster rate health capacity would have been easily overwhelmed. This scenario shows that minor differences in unknown parameters can have major consequences. At the same time the overall outcome of the epidemic in terms of total cumulative deaths is very similar. If this had occurred many of the deaths would have been of individuals who would not have been able to receive treatment. 
 
 
 ## What if the SIR framework is inadequate?
 
-<a name="networks"></a>
 
 When matching SIR model output to real life data the user should be constantly criticising the underlying framework used for modelling. If the SIR assumptions are seriously violated then the SIR could be very seriously misleading. 
 
@@ -463,6 +469,8 @@ If all long distance links are removed and the number of contacts restricted the
 
 
 #### Change from global to local (effective lockdown)
+
+
 
 A very effective lockdown can potentially produce a curve that closely mimics the SIR. This occurs if the disease is spreading very quickly prior to the lockdown, and the lockdown is then very effective. The behaviour might look superficially rather like an SIR curve with many individuals developing immunity. However rather than being a removed section of the population at risk through immunity or death, the removed section of the population is essentially an "unreachable" proportion. It is well worth considering this model as a heuristic. Empirical support for the model would be provided by either sudden collapses of the epidemic after lockdowns are implemented and/or rapid second waves occurring in geographically (or socially) novel areas of the network if lockdowns are relaxed. while infections are still present. 
 
