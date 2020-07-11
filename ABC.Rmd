@@ -1,0 +1,185 @@
+---
+title: "Approximate Bayesian Computation Fit"
+author: "Duncan Golicher"
+date: "05/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+
+
+```{r}
+library(shiny)
+library(tidyverse)
+require(lubridate)
+require(RCurl)
+library(dygraphs)
+library(xts)
+library(lubridate)
+library(mapview)
+library(sf)
+library(leaflet)
+library(DT)
+library(easynls)
+library(deSolve)
+```
+
+```{r}
+load("workspace2020-06-05.rda")
+
+
+sir<-function(time, state, parameters) {
+  
+  with(as.list(c(state, parameters)), {
+    
+    dS <- -beta * S * I
+    dI <-  beta * S * I - gamma * I
+    dR <- gamma * I * (1-v)
+    dD <- gamma * I * v 
+   
+    
+    return(list(c(dS, dI, dR,dD)))
+  })
+}
+
+run_sir<- function(beta=0.5, gamma= 0.1, days=100, S=0.9,I=0.1, v=0.1, R=0, D=0)
+{
+  parameters <- c(beta = beta,gamma=gamma, v=v)
+  init<- c(S = S, I = I,R = R, D=D)
+  times<- seq(0, days, by = 1)
+  out <- ode(y = init, times = times, func = sir, parms = parameters)
+  d <- as.data.frame(out)        
+  d
+}
+
+
+```
+
+
+```{r}
+
+countries ="New York"
+sdate=as.Date("2020-03-01")
+
+d %>% filter(Country %in% countries) %>% arrange(Date) %>% filter(Date > sdate ) -> case_data
+
+
+N<-case_data$pop[1] 
+days<-dim(case_data)[1]
+case_data <-data.frame(days=1:days, deaths= case_data$NDeaths)
+init_deaths<-case_data$deaths[1] +1 
+
+
+## Find the differences (i.e. the daily deaths)
+case_data %>% mutate(Daily_deaths = deaths - lag(deaths, default = first(deaths))) %>% arrange(deaths) -> case_data
+case_data$Daily_deaths[case_data$Daily_deaths<0]<-NA
+
+
+sir_test_run<-function(prisk=1,immunity=0.2,beta=0.4, gamma=0.2, ifr=0.001, burn_in =15,ideaths=init_deaths)
+{
+# prisk <- 100/100
+# immunity<-0.2
+# beta<-0.4
+# gamma<-0.2
+# ifr<-0.001
+# burn_in <- 15
+# ideaths=init_deaths
+  
+  init_cases<-ideaths/ifr 
+  Nr <- N/prisk
+   I <- init_cases/Nr
+   S <- 1-I-immunity
+   R <- immunity
+   D <- init_deaths/Nr
+   
+   
+sir_data<-run_sir(beta=beta, gamma= gamma, S=S, I=I, R=R,D=D,days=days+burn_in, v=ifr)
+sir_data %>% filter(time > burn_in) -> sir_data
+test_data <-data.frame(case_data,sir_deaths=sir_data$D * Nr) 
+test_data %>%  mutate(sir_daily = sir_deaths - lag(sir_deaths, default = first(sir_deaths))) -> test_data
+test_data
+
+}
+
+sir_rms<-function(test_data=test_data)
+{
+  mn<-function(x)mean(x,na.rm = TRUE)
+rms_daily<-  sqrt(mn((test_data$Daily_death - test_data$sir_daily)^2))
+rms_deaths <-  sqrt(mn((test_data$deaths - test_data$sir_deaths)^2))
+data.frame(rms_daily,rms_deaths)
+}
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+test_fit<-function(prisk=1,immunity=0.2,beta=0.4, gamma=0.2, ifr=0.001, burn_in =15){
+  test_data<-sir_test_run(prisk,immunity,beta, gamma, ifr, burn_in)
+
+data.frame(prisk,immunity,beta,gamma,ifr,burn_in, sir_rms(test_data=test_data))
+}
+
+
+
+
+```
+
+
+
+```{r}
+run<-function(i)test_fit(
+  beta = runif(1,0.2,0.8),
+  gamma = runif(1,0.1,0.6),
+  immunity=runif(1,0.01,0.8),
+  prisk=runif(1,0.1,1),
+  ifr =runif(1,0.0001,0.01),
+  burn_in = runif(1,2,15))
+
+i<-1:10000
+a<-lapply(i, run)
+d<-do.call("rbind",a)
+d %>% arrange(rms_daily) -> d
+
+```
+
+```{r}
+dt(head(d))
+```
+
+
+
+```{r}
+
+ggplot(d[1:100,], aes(x=prisk, y=ifr,z=rms_daily)) + geom_density_2d() +geom_point()
+```
+
+
+
+```{r}
+d %>% filter(rms_daily == min(rms_daily)) -> a
+
+ft<-sir_test_run(prisk=a$prisk,immunity=a$immunity,beta=a$beta,gamma=a$gamma,ifr=a$ifr,burn_in=a$burn_in)
+
+
+```
+
+
+
+```{r}
+
+ft %>% ggplot(aes(x=days)) + geom_line(aes(y=Daily_deaths)) + geom_line(aes(y=sir_daily),col="red")
+```
+
+

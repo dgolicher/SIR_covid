@@ -5,9 +5,9 @@ account: dgolicher
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2364090
-bundleId: 3197725
+bundleId: 3291222
 url: https://dgolicher.shinyapps.io/SIR_Covid/
-when: 1590617152.02107
+when: 1592561414.10078
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: df2020-05-25.rda|df2020-05-26.rda|df2020-05-27.rda|Fit_sir.html|Fit_sir.Rmd|workspace.rda
+ignoredFiles: app_lockdowd.R|df2020-05-25.rda|df2020-05-26.rda|df2020-05-27.rda|epidemics.bib|Fit_sir.html|Fit_sir.Rmd|heuristic_modelling2.html|heuristic_modelling2.Rmd|social-distancing.nlogo|workspace.rda|workspace2020-05-28.rda|workspace2020-05-30.rda|workspace2020-06-02.rda

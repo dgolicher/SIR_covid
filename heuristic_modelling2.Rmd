@@ -140,13 +140,28 @@ So Gupta's group set about using the SIR in a heuristic capacity, not to predict
 
 If we know how many people have died of covid at a point in the epidemic's trajectory we can estimate the number of people infected in the past through making assumptions regarding the IFR and the average time from infection to death. Say the IFR is 0.001 (i.e. 1/1000) with an  average time to death of three weeks. This would imply that one thousand people were infected three weeks before the first recorded death. (*Of course, one data point would be insufficient to work with on its own, but this logic does extend naturally in a computer simulation to take in data from subsequent deaths.*). If one thousand people were infected three weeks prior to the first case then we can now derive the total number of people infected at that point in time by making more assumptions. The $\beta$ "jumble" of parameters that determine transmission need to be estimated. This can be done to some extent by fitting curves to the initial slope of previous outbreaks in China and Italy Let's assume that the number of cases at the outset (within an almost completely susceptible population) are doubling every 3.5 days. In three weeks the initial thousand cases would therefore have doubled 6 times. This implies around 64 thousand people have already been infected when the first death is noticed. A plausible model with a low IFR and a high $R_0$ implied that a large proportion of the UK population had been infected prior to the lockdown. This result was clearly a difficult one to publicise at the time. The modelling section of the paper was effectively buried.
 
+
+
 ### Multiple competing hypotheses 
 
 One interesting element of the paper was the way that it revealed an intrinsic difficulty in evaluating the fit of any moderately complex model. Gupta's group used the Bayesian technique of Monte Carlo Markov Chain (MCMC) to find credible intervals for key parameters. This is a really good way of formally measuring model uncertainty. However difficulties still arise if multiple local maxima occur in the likelihood function. Very different sets of parameter values can produce similar matches to the only available data. In this case the model becomes extremely sensitive to all the prior assumptions regarding ranges of parameter values. If, for example, you hold all other parameters constant apart from (say) the incident fatality ratio then you may be able to estimate a ballpark value for the IFR with a formal measure of uncertainty. However, what do you conclude if the region where the optimum falls then jumps into a totally different ballpark as soon as you change your assumptions for other parameter, such as beta?  In this case different models provide just as good a fit to the data, even though each model represents a radically different hypothesis regarding how the epidemic behaves! One model may predict a coming apocalypse while another predicts a severe flu season. Which do you believe? How can you possibly tell? Setting vague priors on all parameters just crashes the algorithm used for fitting.
 
-There is no purely statistical solution to this sort of problem. The only way to address it is to accept that the model is being used as a heuristic tool. The SIR is just another "what if the world were like this" type model. Choosing a single definitive course of action to combat the epidemic is impossible. 
+There is no purely statistical solution to this sort of problem, although it can be partially addressed by setting constraining priors on some parameters when using Bayesian model fitting. 
+The simplest way to address it is to accept that the model is being used as a heuristic tool. The SIR is just another "what if the world were like this" type model. Choosing a single definitive course of action to combat the epidemic is not possible as there is too much inherent uncertainty regarding the parameter space. 
 
-However the approach can be useful. The papers by @Lourenco2020 and  @Ferguson2020 were both written prior to the start of the lockdown. As new data has come in it is now possible to reuse the @Lourenco2020 type model in conjunction with new data. This may help to rule out some combinations of parameters and assumptions can be ruled out. If the SIR does not match the data at all then some of the assumptions underlying the model must be wrong. This could imply either that the SIR framework itself is inadequate, that the parametrisation is wrong or both are wrong. The further the predictions lie from the actual data the more the assumptions have been violated. So while it is impossible to find the "right" model, it is now not quite as hard to rule out models that are very clearly wrong.
+Fitting SIR based models can still be useful. The papers by @Lourenco2020 and  @Ferguson2020 were both written prior to the start of the lockdown. As new data has come in it is now possible to reuse the @Lourenco2020 type model in conjunction with new data. This may help to rule out some combinations of parameters. If the SIR does not match the data at all then some of the assumptions underlying the model must be wrong. This could imply either that the SIR framework itself is inadequate, that the parametrisation is wrong or that both are wrong. The further the predictions lie from the actual data the more the assumptions have been violated. So while it is impossible to find the "right" model, it is now not quite as hard to rule out models that are very clearly wrong.
+
+## Dark matter in the SIR?
+
+One element of the SIR model that is both irrelevant to its dynamical behavious and in the real world essential to understanding the impact of an epidemic is the absolute size of the population at risk.
+
+@Friston2020  works with dynamic causal models which are generative models based on the SIR (actually Fristons models are variations of the SEIR). Models are fit using 
+@Friston2020a
+@Moran2020
+
+### Changing the size of the population at risk
+
+
 
 ## Implementing the SIR in R 
 
@@ -172,7 +187,6 @@ The model interface tab on the left hand panel allows the input to a superimpose
 The model output is very highly sensitive to choices regarding the incidence fatality rate. Small alterations to this parameter propagate through the entire model run as they affect the build up of the epidemic and the eventual outcome in terns of mortality. Low values for incidence fatality rates imply high levels of contact with covid within the community. 
 The interface also allows the user to select a value for the fraction of the population that has some form of immunity at the start of the epidemic. In March both Ferguson and Gupta assumed that as the virus is novel that no immunity would be present within the community. The evidence for immunity remains ambiguous. However given the extremely low proportion of children under 14 developing symptoms it is plausible to believe that children may combat covid with either an inherent immune response or some other mechanism.
 
-![](figs/interface2.png)
 
   
 #### Evaluating the match to the date
@@ -212,7 +226,7 @@ sir <- function(time, state, parameters) {
 }
 
 ## All the run_sir parameters are actually set from the shiny interface. 
-run_sir<-function(beta, gamma, days, S,I, v, R, D, H, gamma2)
+run_sir<-function(beta, gamma, days, S,I, v, R, D, H, gamma2=0.1)
 {
   parameters <- c(beta = beta,gamma=gamma, v=v, gamma2=gamma2)
   init<- c(S = S, I = I,R = R, D=D, H=H)
@@ -438,6 +452,45 @@ g1
 ##### Comments
 
 As the IFR was meningfully higher in New York if the epidemic had spread at a faster rate health capacity would have been easily overwhelmed. This scenario shows that minor differences in unknown parameters can have major consequences. At the same time the overall outcome of the epidemic in terms of total cumulative deaths is very similar. If this had occurred many of the deaths would have been of individuals who would not have been able to receive treatment. 
+
+### Germany {.tabset }
+
+#### Dark matter (immnunity) scenario {.tabset }
+
+Parameter values.   
+ 
+1. Start date = 2020-03-01   
+2. Immunity=0.4   
+3. Beta=0.65    
+4. Gamma=0.25   
+5. IFR=0.003   
+6. Average time to death = 21 days  
+
+```{r}
+plot_sir(countries ="Germany",sdate=as.Date("2020-03-01"),immunity=0.4 ,beta=0.65, gamma=0.25, ifr=0.00028, burn_in=16)
+
+```
+
+
+##### Matched with daily deaths
+```{r}
+g2
+```
+
+##### Matched with cumulative deaths
+```{r}
+g3
+```
+
+##### SIR
+```{r}
+g1
+```
+
+
+##### Comments
+
+The remarkably low death toll in Germany has been attributed to effective health intervention. There may also be indications that the population has high levels of intrinsic immunity and/or resistance to covid (dark matter hypothesis). An intriguing idea is that this may be a result of cross immunity with MERS, Germany recieved large numbers of migrants from regions where MERS was endemic in 2015.
 
 
 ## What if the SIR framework is inadequate?

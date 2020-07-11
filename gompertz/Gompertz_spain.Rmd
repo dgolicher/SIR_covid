@@ -1,0 +1,71 @@
+---
+title: "Gomepertz spain"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(brms)
+
+raw <- read_csv("spain_data.csv")
+
+formula <- casos ~ A * exp( -exp( -(k * (days - delay) ) ) )
+
+form_mult <- bf(formula,
+                A ~ 1 + (1 | ccaa),
+                k ~ 1 + (1 | ccaa),
+                delay ~ 1 + (1 | ccaa), 
+                nl = TRUE)
+
+priors <- c(
+  prior(normal(0, 13000), nlpar = "A", lb=200),
+  prior(normal(.1, .05), nlpar = "k", lb=0),
+  prior(normal(5, 20), nlpar = "delay", lb=0),
+  prior(student_t(3, 0, 5000), class = "sigma"),
+  prior(student_t(4, 3000, 5000), class = "sd", group = "ccaa", nlpar = "A"),
+  prior(student_t(4, 0, 0.03), class = "sd", group = "ccaa", nlpar = "k")
+)
+
+mod <- brm(form_mult, 
+           data = raw,
+           prior = priors, 
+           seed = 1234,
+           family = gaussian("identity"),
+           iter = 1000,
+           chains = 1, 
+           cores=4, 
+           sample_prior = "no", 
+           control = list(adapt_delta = 0.99,
+                          max_treedepth = 12))
+```
+
+https://discourse.mc-stan.org/t/hierarchical-gompertz-model/13724/85
+
+
+```{r}
+
+pred <- as.data.frame(predict(mod, probs = c(0.01, 0.99), re_formula = NULL))
+
+colnames(pred)[3] <- "low"
+colnames(pred)[4] <- "upp"
+pred$ccaa <-  raw$ccaa
+pred$days <- raw$days
+pred$observed <- raw$casos
+pred$pob <- raw$pob
+pred$low[pred$low < 0] <- 0
+
+pred %>% 
+  ggplot(aes(x = days, y = observed)) + 
+  geom_point(aes(), size = 0.4) +
+  geom_ribbon(aes(ymin = low, ymax = upp ), alpha = 0.3) +
+  facet_wrap(~ccaa, scales = "free_y") 
+
+
+
+```
+

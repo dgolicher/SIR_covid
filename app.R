@@ -31,17 +31,17 @@ sir <- function(time, state, parameters) {
     dS <- -beta * S * I
     dI <-  beta * S * I - gamma * I
     dR <- gamma * I * (1-v)
-    dH <- gamma * I * v
-    dD <- gamma2 * H
+    dD <- gamma * I * v
+  
     
-    return(list(c(dS, dI, dR,dH,dD)))
+    return(list(c(dS, dI, dR,dD)))
   })
 }
 
-run_sir<-function(beta=0.5, gamma= 0.1, days=100, S=0.9,I=0.1, v=0.1, R=0, D=0, H=0, gamma2=1/15)
+run_sir<-function(beta=0.5, gamma= 0.1, days=100, S=0.9,I=0.1, v=0.1, R=0, D=0, gamma2=1/15)
 {
   parameters <- c(beta = beta,gamma=gamma, v=v, gamma2=gamma2)
-  init<- c(S = S, I = I,R = R, D=D, H=H)
+  init<- c(S = S, I = I,R = R, D=D)
   times<- seq(0, days, by = 1)
   out <- ode(y = init, times = times, func = sir, parms = parameters)
   d <- as.data.frame(out)        
@@ -69,11 +69,11 @@ tryObserve <- function(x) {
 
 
 
-library(WDI)
-wd <- WDI(country="all", indicator=c( "SP.POP.TOTL", "SP.POP.65UP.TO.ZS"), start=2018, end=2018, extra = TRUE)
-wd<-wd[c(1,4)]
-names(wd)[2] <-c("pop")
-
+#library(WDI)
+#wd <- WDI(country="all", indicator=c( "SP.POP.TOTL", "SP.POP.65UP.TO.ZS"), start=2018, end=2018, extra = TRUE)
+#wd<-wd[c(1,4)]
+#names(wd)[2] <-c("pop")
+load("wd.rda")
 ## A small function to ensure that the data tables have download buttons
 
 dt<-function(d) {DT::datatable(d, 
@@ -158,8 +158,12 @@ d$Daily_deaths[d$Daily_deaths < 0]<-NA
 df %>% group_by(Country) %>% summarise( max=max(NDeaths)) %>% arrange(-max) %>% mutate(Country = factor(Country, Country)) -> tmp
 c_options<-levels(tmp$Country)
 
-# nm<- sprintf("workspace%s.rda", Sys.Date())
-# save(list=ls(),file=nm)
+load("wd.rda")
+nm<- sprintf("workspace%s.rda", Sys.Date())
+save(list=ls(),file=nm)
+#load("workspace2020-06-07.rda")
+#save(wd, file="wd.rda")
+
 
 
 # Define UI for application that draws a histogram
@@ -173,9 +177,10 @@ ui <- fluidPage(
       sidebarPanel(
         tabsetPanel(type = "tabs",
                     tabPanel("Choose data options",
-        h4("Select a country or US State from the list"),
+        h5("Data from Johns Hopkins repository"), 
+        h5("https://raw.githubusercontent.com/CSSEGISandData"), 
+        h5 ("Select a country or US State from the list"),
         h5("If the country or State does not appear in the drop down menu press backspace and type a few letters to find it."),
-        h6("The figures show the running average of the reported daily incidence of death with Covid or confirmed new case."),
         selectInput("country", "Country", c_options, selected = 'United Kingdom', multiple = FALSE,
                     selectize = TRUE, width = NULL, size = NULL),
         sliderInput("ndays", "Number of days for running average:",
@@ -191,9 +196,15 @@ ui <- fluidPage(
                     timeFormat="%Y-%m-%d")
       ),tabPanel("SIR model parameters",
         h6("The interface allows combinations of SIR model parameters to be quickly evaluated against data."),         
-        h6("There are many differnt combinations of parameters that can produce a close match to the data"),
         h6("The SIR model assmes panmixia so is likely to be particularly inappropriate for countries such as the US or Brazil: The data set includes US states as entities." ),
-                 sliderInput("beta",
+        h6("Setting the population at risk to below 100% could represent Karl Friston's model."),
+        sliderInput("prisk",
+                    "Proportion of total population considered at risk:",
+                    min = 0,
+                    max = 100,
+                    value = 100), 
+        
+        sliderInput("beta",
                              "Beta",
                              min = 0,
                              max = 1,
@@ -212,10 +223,11 @@ ui <- fluidPage(
                              value = 1,
                              step=0.1),
                  sliderInput("immunity",
-                             "% of population that are naturally immune:",
+                             "% of population at risk that initially immune:",
                              min = 0,
                              max = 100,
                              value = 20),
+                
                  
                  sliderInput("burn_in",
                              "Number of days prior to date chosen to start SIR model run:",
@@ -228,7 +240,9 @@ ui <- fluidPage(
       # Show a plot of the generated distribution
       mainPanel(
         tabsetPanel(type = "tabs",
-                    tabPanel("Deaths",  dygraphOutput("deaths")),
+                    tabPanel("Deaths", 
+                             h6("Smoothing through running averages. Use the slider on left."), 
+                             dygraphOutput("deaths")),
                     tabPanel("Cases",  dygraphOutput("cases")),
                     tabPanel("Gompertz fit", 
                              h5("This is simple curve fitting. Do not interpret the output as a predictive model!"),
@@ -238,13 +252,31 @@ ui <- fluidPage(
                              verbatimTextOutput  ("results")),
                     
                     tabPanel("SIR fit to cumulative deaths", 
+                             h4("Adjust the sliders to find a match."),
+                             h5("Different combinations of parameters may represent different hypotheses regarding underlying processes."),
                              plotOutput("sircumplot") ),
                     
                     tabPanel("SIR fit to daily deaths", 
+                             h4("Adjust the sliders to find a match."),
+                             h5("Different combinations of parameters may represent different hypotheses regarding underlying processes."),
                             plotOutput("sirplot") ),
                     
                     tabPanel("SIR output", 
-                       dygraphOutput("sird") )
+                       dygraphOutput("sird")),
+                    
+                    
+                    tabPanel("Help",
+ 
+
+h5("", 
+   a("An explanation of the logic of using the SIR as an heuristic model is found here.", target="_blank",
+     href="https://rpubs.com/dgolicher/Heuristic_covid")),
+
+h5("", 
+   a("More ways of looking at the John Hopkins data", target="_blank",
+     href="https://dgolicher.shinyapps.io/Johns_hopkins_dygraphs/"))
+)
+                  
                     
                 
                     
@@ -325,6 +357,7 @@ server <- function(input, output) {
      ifr<-input$ifr/1000
      burn_in <- input$burn_in  ## This is the number of days prior to the observed death number at which to start the run
      gamma2<-  1/burn_in
+     prisk <- input$prisk/100
      
     #### For testing code
     # countries <-"US"
@@ -333,6 +366,8 @@ server <- function(input, output) {
     # beta<-0.4
     # gamma<-0.2
     # ifr<-0.001
+     
+     
      d %>% filter(Country %in% countries) %>% arrange(Date) %>% filter(Date > sdate ) ->dd2
      days<-length(dd2$NDeaths)
   ### Arrange a data frame for work with just two columns, one being total deaths and the other days,
@@ -343,7 +378,7 @@ server <- function(input, output) {
    
    gdata2$Daily_deaths[gdata2$Daily_deaths<0]<-NA
    
-   N<-dd$pop[1]  # Population at risk
+   N<-dd2$pop[1] * prisk # Population at risk
    init_deaths<-gdata2$deaths[1] +1 # Seed with one extra death just in case there are some situations where there are no deaths to start
    
    init_cases<-init_deaths/ifr ## Dividing by the incidence fatality rate gives the number of cases at the start
@@ -353,13 +388,19 @@ server <- function(input, output) {
    S <- 1-I-immunity
    R <- immunity
    D <- init_deaths/N
-   H <- D/gamma2
+
   
    
-   sd<-run_sir(beta=beta, gamma= gamma, S=S, I=I,D=D,H=H, days=days+burn_in , R=R, v=ifr, gamma2=gamma2)
-  
-   output$sird <- renderDygraph(dygraph(sd))
+   sd<-run_sir(beta=beta, gamma= gamma, S=S, I=I,D=D, days=days+burn_in , R=R, v=ifr, gamma2=gamma2)
+   sd$time <- sd$time+sdate - burn_in
+   
+   output$sird <- renderDygraph({
+     don<-xts(x=sd[,-1], order.by=sd$time)
+     dygraph(don)
+     }
+     )
    ds<-pivot_longer(sd,cols=2:5)
+   #ds$time <- ds$time+sdate - burn_in
    ds$value<-ds$value*N
    
    #g1<-ggplot(data=ds,aes(x=time,y=value,color=name))
@@ -367,7 +408,7 @@ server <- function(input, output) {
    output$sirplot<- renderPlot({
      plot_title<-sprintf("R zero approximately %s",round(beta/gamma,2))
      ds %>% filter(name=="D") %>% mutate(Daily_deaths = value - lag(value, default = first(value))) %>% arrange(value) -> ds2
-     ds2 %>% filter(time>burn_in) %>%
+     ds2 %>% filter(time>sdate) %>%
      ggplot(aes(x=time,y=Daily_deaths)) + 
      geom_line() + geom_line( aes(y=gdata2$Daily_deaths), col="red") + ggtitle(plot_title)
    })
@@ -375,7 +416,7 @@ server <- function(input, output) {
    output$sircumplot<- renderPlot({
      plot_title<-sprintf("R zero approximately %s",round(beta/gamma,2))
      ds %>% filter(name=="D") %>% mutate(Daily_deaths = value - lag(value, default = first(value))) %>% arrange(value) -> ds2
-     ds2 %>% filter(time>burn_in) %>%
+     ds2 %>% filter(time>sdate) %>%
        ggplot(aes(x=time,y=value)) +
        geom_line() + geom_line( aes(y=gdata2$deaths), col="red") + ggtitle(plot_title)
    })

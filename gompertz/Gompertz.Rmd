@@ -1,0 +1,99 @@
+---
+title: "Gompertz"
+author: "Duncan Golicher"
+date: "6/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+https://datacloning.org/courses/2016/madison/pva.html
+
+
+```{r}
+set.seed(1234)
+a <- 1.5
+b <- -0.35
+sigma_sq <- 0.01
+T <- 30
+x <- numeric(T)
+x[1] <- log(1) # initial log abundance
+for (t in 2:T)
+    x[t] <- x[t - 1] + a + b * x[t - 1] + rnorm(1, 0, sqrt(sigma_sq))
+N <- exp(x)
+plot(as.ts(N))
+```
+
+
+
+```{r}
+
+library(dclone)
+model <- custommodel("model { 
+    for (k in 1:K) { 
+        x[1,k] ~ dnorm(a / (1 - b), (1 - b^2) / sigma_sq) 
+        for (t in 2:T) { 
+            x[t,k] ~ dnorm(mu[t,k], 1 / sigma_sq) 
+            mu[t,k] <- a + (1 + b) * x[t - 1,k] 
+        } 
+    } 
+    a ~ dnorm(0, 0.01) 
+    b ~ dunif(-0.999, -0.001)
+    z <- 0.5 * log((1 + b) / (1 - b))
+    sigma_sq <- exp(log_sigma)^2 
+    log_sigma ~ dnorm(0, 0.01) 
+}") 
+dat <- list(x = data.matrix(x), K = 1, T = T)
+fit <- jags.fit(dat, c("a", "b", "sigma_sq","z"), model)
+summary(fit)
+
+```
+
+
+```{r}
+K <- c(1, 2, 4, 8)
+dat <- list(x = dcdim(data.matrix(x)), K = 1, T = T)
+dcfit <- dc.fit(dat, c("a", "b", "sigma_sq"), model,
+    n.clones = K,
+    unchanged = "T", multiply = "K")
+summary(fit)
+plot(dcdiag(dcfit))
+plot(dctable(dcfit))
+```
+
+
+
+```{r}
+dat$x[5,1] <- NA
+```
+
+
+
+
+```{r}
+fit <- jags.fit(dat, c("a", "b", "sigma_sq", "x[5,1]"), model)
+summary(fit)
+densplot(fit[,"x[5,1]"])
+abline(v = x[5], col = 2)
+abline(v = quantile(fit[,"x[5,1]"], probs = c(0.025, 0.5, 0.975)), 
+    col = 4, lty = 2)
+quantile(fit[,"x[5,1]"], probs = c(0.025, 0.5, 0.975))
+x[5]
+```
+
+
+
+```{r}
+T2 <- 10
+dat2 <- list(x = data.matrix(c(x, rep(NA, T2))), 
+    K = 1, T = T + T2)
+fit <- jags.fit(dat2, c("x[31:40,1]"), model)
+summary(fit)
+pi1 <- quantile(fit, probs = c(0.025, 0.5, 0.975))
+
+plot(as.ts(x), xlim=c(1,40), ylim = range(c(x, pi1)))
+matlines(30:40, rbind(x[c(30, 30, 30)], t(pi1)), col=4, lty=2)
+```
+
